@@ -55,9 +55,9 @@ exit /b 1
 
 :pipok
 
-:: ── Kill stale server on port 5000 ───────────────────────────
-echo   Checking for existing server on port 5000 ...
-for /f "tokens=5" %%p in ('netstat -aon ^| findstr :5000 ^| findstr LISTENING') do (
+:: ── Kill stale server on port 8080 ───────────────────────────
+echo   Checking for existing server on port 8080 ...
+for /f "tokens=5" %%p in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING') do (
     echo   Stopping previous server PID %%p ...
     taskkill /PID %%p /F >nul 2>&1
 )
@@ -69,11 +69,11 @@ start "EIS Server" /min pc\.venv\Scripts\python.exe pc\server.py
 :: ── Wait and open browser ────────────────────────────────────
 echo   Waiting for server to start ...
 timeout /t 3 /nobreak >nul
-start http://localhost:5000
+start http://localhost:8080
 
 echo.
 echo ============================================================
-echo   Server is running at http://localhost:5000
+echo   Server is running at http://localhost:8080
 echo   Browser should open automatically.
 echo.
 echo   To stop: close the "EIS Server" window, or press Ctrl+C here.

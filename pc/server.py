@@ -3,7 +3,7 @@ server.py — Sprint 7: Flask + SocketIO backend for browser EIS interface.
 
 Start:
     python pc/server.py
-    Open: http://localhost:5000
+    Open: http://localhost:8080
 
 SocketIO events (browser → server):
     start_sweep   {start_hz, stop_hz, points}  — configure + trigger sweep
@@ -271,7 +271,7 @@ def on_stop_sweep():
 if __name__ == "__main__":
     print("=" * 55)
     print("  EIS Browser Server — Sprint 12")
-    print("  Open: http://localhost:5000")
+    print("  Open: http://localhost:8080")
     print("  Ctrl+C to stop")
     print("=" * 55)
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+    socketio.run(app, host="0.0.0.0", port=8080, debug=False, use_reloader=False)

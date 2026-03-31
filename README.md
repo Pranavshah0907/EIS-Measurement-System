@@ -58,7 +58,7 @@ See [docs/wiring.md](docs/wiring.md) for detailed pin connections.
    ```
 
 3. **Use the interface**
-   - Browser opens automatically to `http://localhost:5000`
+   - Browser opens automatically to `http://localhost:8080`
    - Wait for hardware checks to turn green
    - Configure sweep parameters and click **Start Sweep**
    - Nyquist plot updates in real-time as data arrives
