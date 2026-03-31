@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OnBASYS — EIS Measurement Interface</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    :root {
+      --bg:         #101214;
+      --surface:    #161a1e;
+      --surface-2:  #1e2228;
+      --border:     #2c3038;
+      --border-2:   #222630;
+      --text:       #e0e2e8;
+      --text-muted: #8a8f9a;
+      --text-dim:   #505662;
+      --accent:     #d4900c;
+      --accent-lit: #eaaa28;
+      --accent-dim: #2a1e05;
+      --teal:       #22c088;
+      --teal-dim:   #0c2a1e;
+      --amber:      #d4900c;
+      --red:        #d95a5a;
+      --red-dim:    #280d0d;
+      --mono:       'DM Mono', monospace;
+      --sans:       'Outfit', sans-serif;
+      --radius:     4px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: var(--sans);
+      font-weight: 400;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 50px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-name {
+      font-family: var(--sans);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-pipe {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .brand-sub {
+      font-size: 0.82rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      letter-spacing: 0.01em;
+    }
+
+    /* connection status pill */
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      font-size: 0.75rem;
+      font-family: var(--sans);
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: border-color 0.3s, color 0.3s, background 0.3s;
+    }
+    .status-pill.idle    { border-color: rgba(26,184,152,0.45); color: var(--teal);  background: var(--teal-dim); }
+    .status-pill.running { border-color: rgba(212,144,12,0.45); color: var(--amber); }
+    .status-pill.error   { border-color: rgba(217,90,90,0.45);  color: var(--red);   background: var(--red-dim); }
+
+    #status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-dim);
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+    #status-dot.idle    { background: var(--teal); }
+    #status-dot.running { background: var(--amber); animation: blink 1s infinite; }
+    #status-dot.error   { background: var(--red); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    /* ── Two-column layout ──────────────────────────────────── */
+    .main { display: flex; flex: 1; min-height: 0; }
+
+    /* ── Sidebar ────────────────────────────────────────────── */
+    .sidebar {
+      width: 268px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .s-section { padding: 14px 16px; border-bottom: 1px solid var(--border-2); }
+
+    .s-label {
+      font-size: 0.72rem;
+      font-family: var(--sans);
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+      margin-bottom: 12px;
+    }
+
+    /* ── HW accordion ───────────────────────────────────────── */
+    .hw-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .hw-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hw-mini-dots { display: flex; gap: 3px; align-items: center; }
+
+    .hw-mini-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--text-dim);
+      transition: background 0.3s;
+    }
+    .hw-mini-dot.ok       { background: var(--teal); }
+    .hw-mini-dot.checking { background: var(--amber); animation: blink 1s infinite; }
+    .hw-mini-dot.error    { background: var(--red); }
+
+    .hw-summary-text {
+      font-size: 0.7rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .hw-summary-text.all-ok { color: var(--teal); }
+
+    .hw-chevron {
+      width: 12px; height: 12px;
+      color: var(--text-dim);
+      transition: transform 0.22s ease;
+      flex-shrink: 0;
+    }
+    .hw-chevron.open { transform: rotate(180deg); }
+
+    .hw-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.28s ease, margin-top 0.22s ease;
+    }
+    .hw-body.open { max-height: 230px; margin-top: 11px; }
+
+    .hw-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 0; font-size: 0.77rem;
+    }
+    .hw-row + .hw-row { border-top: 1px solid var(--border-2); }
+
+    .hw-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+      background: var(--text-dim); transition: background 0.3s;
+    }
+    .hw-dot.checking { background: var(--amber); animation: blink 1s infinite; }
+    .hw-dot.ok       { background: var(--teal); }
+    .hw-dot.error    { background: var(--red); }
+
+    .hw-name { width: 108px; color: var(--text); flex-shrink: 0; font-size: 0.77rem; font-weight: 400; }
+    .hw-msg  { color: var(--text-muted); font-size: 0.7rem; }
+
+    #btn-recheck {
+      margin-top: 10px; padding: 5px 11px;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: transparent; color: var(--text-muted);
+      font-size: 0.7rem; font-family: var(--sans); font-weight: 400;
+      cursor: pointer; transition: border-color 0.2s, color 0.2s;
+    }
+    #btn-recheck:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-lit); }
+    #btn-recheck:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── Sweep accordion ───────────────────────────────────── */
+    .sweep-header {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+    }
+    .sweep-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.28s ease, margin-top 0.22s ease;
+    }
+    .sweep-body.open { max-height: 500px; margin-top: 8px; }
+
+    /* ── Config fields ──────────────────────────────────────── */
+    .field { margin-bottom: 10px; }
+    .field label {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 0.7rem; font-weight: 400; color: var(--text-muted); margin-bottom: 4px;
+    }
+    .field label .unit { font-size: 0.65rem; color: var(--text-dim); }
+    .field input {
+      width: 100%; padding: 8px 10px;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface-2); color: var(--text);
+      font-size: 0.88rem; font-family: var(--sans); font-variant-numeric: tabular-nums;
+      transition: border-color 0.2s;
+      -moz-appearance: textfield;
+    }
+    .field input::-webkit-outer-spin-button,
+    .field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .field input:focus { outline: none; border-color: var(--accent); }
+    .field input:disabled { opacity: 0.38; cursor: not-allowed; }
+
+    /* ── Buttons ────────────────────────────────────────────── */
+    .btn-group { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
+
+    .btn {
+      width: 100%; padding: 9px 14px; border: none; border-radius: var(--radius);
+      font-size: 0.82rem; font-family: var(--sans); font-weight: 500;
+      cursor: pointer; transition: background 0.18s, border-color 0.18s, color 0.18s;
+      letter-spacing: 0.01em;
+    }
+    .btn:disabled { opacity: 0.32; cursor: not-allowed; }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-lit); }
+
+    .btn-stop {
+      background: transparent; border: 1px solid var(--red); color: var(--red);
+    }
+    .btn-stop:hover:not(:disabled) { background: var(--red-dim); }
+
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    }
+    .btn-ghost:hover:not(:disabled) { border-color: var(--teal); color: var(--teal); }
+
+    /* ── Progress ───────────────────────────────────────────── */
+    .progress-wrap { padding: 12px 16px; border-bottom: 1px solid var(--border-2); }
+    .progress-top {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+    }
+    .progress-label { font-size: 0.72rem; color: var(--text-muted); }
+    .progress-pct   { font-size: 0.72rem; font-weight: 500; color: var(--amber); }
+    .progress-track { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .progress-fill  {
+      height: 100%; width: 0%; background: var(--amber); border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+
+    /* ── Message ────────────────────────────────────────────── */
+    .msg-wrap { padding: 10px 16px; }
+    #message {
+      display: none; font-size: 0.73rem;
+      line-height: 1.55; padding: 8px 11px; border-radius: var(--radius); word-break: break-word;
+    }
+    #message.info  { background: var(--teal-dim); border: 1px solid rgba(26,184,152,0.2); color: var(--teal); }
+    #message.error { background: var(--red-dim);  border: 1px solid rgba(217,90,90,0.2);  color: var(--red); }
+
+    /* ── History ────────────────────────────────────────────── */
+    .history-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .history-folder {
+      display: flex; gap: 6px; margin-bottom: 10px;
+    }
+    .history-folder input {
+      flex: 1; padding: 6px 8px;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface-2); color: var(--text);
+      font-size: 0.72rem; font-family: var(--sans);
+    }
+    .history-folder input:focus { outline: none; border-color: var(--accent); }
+    .history-folder button {
+      padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius);
+      background: transparent; color: var(--text-muted); font-size: 0.7rem;
+      cursor: pointer; white-space: nowrap;
+    }
+    .history-folder button:hover { border-color: var(--accent); color: var(--accent-lit); }
+
+    .history-list {
+      flex: 1; overflow-y: auto; min-height: 60px;
+    }
+    .history-empty {
+      font-size: 0.7rem; color: var(--text-dim); text-align: center; padding: 14px 0;
+    }
+    .history-item {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 8px; border-radius: var(--radius);
+      cursor: grab; user-select: none;
+      transition: background 0.15s;
+    }
+    .history-item:hover { background: var(--surface-2); }
+    .history-item.loaded { background: rgba(212,144,12,0.08); }
+
+    .history-color {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+      background: var(--text-dim);
+    }
+
+    .history-info { flex: 1; min-width: 0; }
+
+    .history-name {
+      font-size: 0.75rem; font-weight: 400; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .history-meta {
+      font-size: 0.62rem; color: var(--text-dim);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .history-name-input {
+      width: 100%; padding: 2px 4px;
+      border: 1px solid var(--accent); border-radius: 2px;
+      background: var(--surface-2); color: var(--text);
+      font-size: 0.75rem; font-family: var(--sans);
+      outline: none;
+    }
+
+    .history-rename {
+      padding: 2px 5px; border: none; background: transparent;
+      color: var(--text-dim); font-size: 0.68rem; cursor: pointer;
+      flex-shrink: 0; border-radius: 2px;
+    }
+    .history-rename:hover { color: var(--accent-lit); background: var(--surface-2); }
+
+    /* ── Clear Graph button ─────────────────────────────────── */
+    .btn-clear-graph {
+      padding: 3px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+      background: transparent; color: var(--text-muted);
+      font-size: 0.68rem; font-family: var(--sans); cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-clear-graph:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Settings bar ──────────────────────────────────────── */
+    .settings-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 18px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      min-height: 30px;
+    }
+
+    .settings-trace-name {
+      font-size: 0.73rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .settings-params {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      flex: 1;
+    }
+
+    .settings-param {
+      padding: 0 10px;
+      white-space: nowrap;
+    }
+    .settings-param + .settings-param {
+      border-left: 1px solid var(--border-2);
+    }
+
+    .settings-param .sp-label { color: var(--text-dim); }
+    .settings-param .sp-value { color: var(--text-muted); font-weight: 500; }
+
+    /* ── Content area ───────────────────────────────────────── */
+    .content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Plot area ──────────────────────────────────────────── */
+    .plot-area {
+      flex: 1; min-height: 0; padding: 14px 18px 6px 18px;
+      display: flex; flex-direction: column;
+    }
+
+    .plot-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px; flex-shrink: 0;
+    }
+
+    .plot-title {
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--text);
+    }
+
+    .plot-hints {
+      display: flex; align-items: center; gap: 14px;
+    }
+
+    .plot-hint {
+      font-size: 0.65rem; color: var(--text-dim);
+    }
+
+    .plot-meta { font-size: 0.72rem; font-weight: 500; color: var(--text-muted); }
+
+    #nyquist-plot { flex: 1; min-height: 0; }
+
+    /* Plotly modebar theming */
+    .js-plotly-plot .plotly .modebar {
+      background: var(--surface-2) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      padding: 2px 4px !important;
+    }
+    .js-plotly-plot .plotly .modebar-btn path { fill: var(--text-muted) !important; }
+    .js-plotly-plot .plotly .modebar-btn:hover path { fill: var(--accent-lit) !important; }
+    .js-plotly-plot .plotly .modebar-btn.active path { fill: var(--accent) !important; }
+
+    /* ── Table area ─────────────────────────────────────────── */
+    .table-area {
+      height: 196px; flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      display: flex; flex-direction: column;
+    }
+
+    .table-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 18px; background: var(--surface);
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+
+    .table-title {
+      font-size: 0.75rem; font-weight: 600;
+      color: var(--text);
+    }
+
+    .table-count { font-size: 0.72rem; font-weight: 500; color: var(--text-muted); }
+
+    .table-scroll { flex: 1; overflow-y: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+    thead { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+    th {
+      text-align: right; padding: 6px 18px;
+      color: var(--text-muted); font-weight: 500; font-size: 0.7rem;
+      border-bottom: 1px solid var(--border);
+    }
+    th:first-child { text-align: left; }
+    td {
+      text-align: right; padding: 4px 18px;
+      border-bottom: 1px solid var(--border-2); color: var(--text);
+    }
+    td:first-child { text-align: left; color: var(--text-muted); }
+    tr:hover td { background: var(--surface-2); }
+    #empty-row td {
+      text-align: center; color: var(--text-dim);
+      font-size: 0.7rem; padding: 16px;
+    }
+
+    /* ── Scrollbar ──────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="brand">
+    <span class="brand-name">OnBASYS</span>
+    <div class="brand-pipe"></div>
+    <span class="brand-sub">EIS Measurement Interface</span>
+  </div>
+  <div class="status-pill" id="status-pill">
+    <div id="status-dot"></div>
+    <span id="status-text">Connecting...</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <!-- HW Status accordion -->
+    <div class="s-section">
+      <div class="hw-header" id="hw-toggle">
+        <div class="hw-header-left">
+          <span class="s-label" style="margin-bottom:0;">Hardware</span>
+          <div class="hw-mini-dots">
+            <div class="hw-mini-dot" id="hw-mini-vector"></div>
+            <div class="hw-mini-dot" id="hw-mini-can_bus"></div>
+            <div class="hw-mini-dot" id="hw-mini-mcufirmware"></div>
+          </div>
+          <span class="hw-summary-text" id="hw-summary-text">Checking...</span>
+        </div>
+        <svg class="hw-chevron open" id="hw-chevron" viewBox="0 0 16 16" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4,6 8,10 12,6"/>
+        </svg>
+      </div>
+
+      <div class="hw-body open" id="hw-body">
+        <div class="hw-row">
+          <div class="hw-dot" id="hw-dot-vector"></div>
+          <span class="hw-name">Vector VN1640A</span>
+          <span class="hw-msg" id="hw-msg-vector">Waiting...</span>
+        </div>
+        <div class="hw-row">
+          <div class="hw-dot" id="hw-dot-can_bus"></div>
+          <span class="hw-name">CAN Bus</span>
+          <span class="hw-msg" id="hw-msg-can_bus">Waiting...</span>
+        </div>
+        <div class="hw-row">
+          <div class="hw-dot" id="hw-dot-mcufirmware"></div>
+          <span class="hw-name">MCU Firmware</span>
+          <span class="hw-msg" id="hw-msg-mcufirmware">Waiting...</span>
+        </div>
+        <button id="btn-recheck" disabled>↺  Re-check</button>
+      </div>
+    </div>
+
+    <!-- Sweep config (collapsible) -->
+    <div class="s-section">
+      <div class="sweep-header" id="sweep-toggle">
+        <span class="s-label" style="margin-bottom:0;">Sweep Configuration</span>
+        <svg class="hw-chevron open" id="sweep-chevron" viewBox="0 0 16 16" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4,6 8,10 12,6"/>
+        </svg>
+      </div>
+      <div class="sweep-body open" id="sweep-body">
+        <div class="field">
+          <label>Start Frequency <span class="unit">Hz</span></label>
+          <input type="number" id="start-hz" value="1" min="0.1" step="0.1" disabled>
+        </div>
+        <div class="field">
+          <label>Stop Frequency <span class="unit">Hz</span></label>
+          <input type="number" id="stop-hz" value="1000" min="1" step="1" disabled>
+        </div>
+        <div class="field">
+          <label>Number of Points <span class="unit">1–100</span></label>
+          <input type="number" id="points" value="40" min="1" max="100" step="1" disabled>
+        </div>
+        <div class="s-label" style="margin-top:6px;">Excitation</div>
+        <div class="field">
+          <label>AC Amplitude <span class="unit">mV pp</span></label>
+          <input type="number" id="ac-volt" value="300" min="10" max="800" step="10" disabled>
+        </div>
+        <div class="field">
+          <label>DC Bias <span class="unit">mV</span></label>
+          <input type="number" id="dc-volt" value="1200" min="0" max="2400" step="50" disabled>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn-start" disabled>Start Sweep</button>
+          <button class="btn btn-stop"    id="btn-stop"  style="display:none;">Stop Sweep</button>
+          <button class="btn btn-ghost"   id="btn-csv"   disabled>Download CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress (hidden until sweep) -->
+    <div class="progress-wrap" id="progress-wrap" style="display:none;">
+      <div class="progress-top">
+        <span class="progress-label" id="progress-label">Initializing...</span>
+        <span class="progress-pct"   id="progress-pct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="msg-wrap">
+      <div id="message"></div>
+    </div>
+
+    <!-- History -->
+    <div class="s-section history-section">
+      <div class="s-label">History</div>
+      <div class="history-folder">
+        <input type="text" id="folder-input" placeholder="Measurement folder..." readonly>
+        <button id="btn-browse-folder">Browse</button>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty">No measurements yet.</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Main content -->
+  <div class="content">
+
+    <!-- Nyquist plot -->
+    <div class="plot-area">
+      <div class="plot-bar">
+        <span class="plot-title">Nyquist Plot — Impedance Spectrum</span>
+        <button class="btn-clear-graph" id="btn-clear-graph" title="Clear all traces">Clear Graph</button>
+        <div class="plot-hints">
+          <span class="plot-hint">Ctrl+scroll to zoom</span>
+          <span class="plot-hint">Drag to pan</span>
+          <span class="plot-hint">Dbl-click to reset</span>
+          <span class="plot-meta" id="plot-meta">No data</span>
+        </div>
+      </div>
+      <div id="nyquist-plot"></div>
+    </div>
+
+    <!-- Settings bar — shows config for selected trace -->
+    <div class="settings-bar" id="settings-bar">
+      <span class="settings-trace-name" id="settings-trace-name">No trace selected</span>
+      <div class="settings-params" id="settings-params"></div>
+    </div>
+
+    <!-- Data table -->
+    <div class="table-area">
+      <div class="table-bar">
+        <span class="table-title">Impedance Data</span>
+        <span class="table-count" id="table-count">0 points</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Freq (Hz)</th>
+              <th>Re (mΩ)</th>
+              <th>−Im (mΩ)</th>
+              <th>|Z| (mΩ)</th>
+            </tr>
+          </thead>
+          <tbody id="data-body">
+            <tr id="empty-row"><td colspan="5">No data — start a sweep to begin measurement.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket = io();
+
+  const statusPill  = document.getElementById("status-pill");
+  const dot         = document.getElementById("status-dot");
+  const statusText  = document.getElementById("status-text");
+  const btnStart    = document.getElementById("btn-start");
+  const btnStop     = document.getElementById("btn-stop");
+  const btnCsv      = document.getElementById("btn-csv");
+  const btnRecheck  = document.getElementById("btn-recheck");
+  const progressW   = document.getElementById("progress-wrap");
+  const progressL   = document.getElementById("progress-label");
+  const progressF   = document.getElementById("progress-fill");
+  const progressPct = document.getElementById("progress-pct");
+  const msgBox      = document.getElementById("message");
+  const dataBody    = document.getElementById("data-body");
+  const tableCount  = document.getElementById("table-count");
+  const plotMeta    = document.getElementById("plot-meta");
+  const plotDiv     = document.getElementById("nyquist-plot");
+
+  // ── Accordion ──────────────────────────────────────────────────────────────
+  const hwToggle  = document.getElementById("hw-toggle");
+  const hwBody    = document.getElementById("hw-body");
+  const hwChevron = document.getElementById("hw-chevron");
+  let accordionOpen = true;
+
+  hwToggle.addEventListener("click", () => {
+    accordionOpen = !accordionOpen;
+    hwBody.classList.toggle("open", accordionOpen);
+    hwChevron.classList.toggle("open", accordionOpen);
+  });
+
+  // ── Sweep config accordion ─────────────────────────────────────────────────
+  const sweepToggle  = document.getElementById("sweep-toggle");
+  const sweepBody    = document.getElementById("sweep-body");
+  const sweepChevron = document.getElementById("sweep-chevron");
+  let sweepOpen = true;
+
+  sweepToggle.addEventListener("click", () => {
+    sweepOpen = !sweepOpen;
+    sweepBody.classList.toggle("open", sweepOpen);
+    sweepChevron.classList.toggle("open", sweepOpen);
+  });
+
+  // ── HW check state ─────────────────────────────────────────────────────────
+  const hwState = { vector: null, can_bus: null, mcufirmware: null };
+
+  function allGreen()    { return hwState.vector==="ok" && hwState.can_bus==="ok" && hwState.mcufirmware==="ok"; }
+  function anyChecking() { return Object.values(hwState).some(v => v==="checking"); }
+
+  function refreshMiniDots() {
+    ["vector","can_bus","mcufirmware"].forEach(k => {
+      const el = document.getElementById("hw-mini-" + k);
+      if (el) el.className = "hw-mini-dot " + (hwState[k] || "");
+    });
+    const summEl = document.getElementById("hw-summary-text");
+    if (allGreen()) {
+      summEl.textContent = "All Systems OK";
+      summEl.className   = "hw-summary-text all-ok";
+      setTimeout(() => {
+        if (accordionOpen && allGreen()) {
+          accordionOpen = false;
+          hwBody.classList.remove("open");
+          hwChevron.classList.remove("open");
+        }
+      }, 1400);
+    } else if (Object.values(hwState).some(v => v==="error")) {
+      summEl.textContent = "Check Failed";
+      summEl.className   = "hw-summary-text";
+    } else {
+      summEl.textContent = "Checking...";
+      summEl.className   = "hw-summary-text";
+    }
+  }
+
+  function updateHwCheck(data) {
+    const { check, status, message } = data;
+    hwState[check] = status;
+    const dotEl = document.getElementById("hw-dot-" + check);
+    const msgEl = document.getElementById("hw-msg-" + check);
+    if (dotEl) dotEl.className = "hw-dot " + status;
+    if (msgEl) msgEl.textContent = message;
+    refreshMiniDots();
+    btnRecheck.disabled = anyChecking() || allGreen();
+    if (allGreen() && !sweepRunning) unlockSweepUI();
+  }
+
+  function resetHwChecks() {
+    ["vector","can_bus","mcufirmware"].forEach(k => {
+      hwState[k] = null;
+      const d = document.getElementById("hw-dot-" + k);
+      const m = document.getElementById("hw-msg-" + k);
+      if (d) d.className = "hw-dot";
+      if (m) m.textContent = "Waiting...";
+    });
+    refreshMiniDots();
+    accordionOpen = true;
+    hwBody.classList.add("open");
+    hwChevron.classList.add("open");
+    lockSweepUI();
+    btnRecheck.disabled = true;
+  }
+
+  let sweepRunning = false;
+
+  function lockSweepUI() {
+    ["start-hz","stop-hz","points","ac-volt","dc-volt"].forEach(id => document.getElementById(id).disabled = true);
+    btnStart.disabled = true;
+  }
+  function unlockSweepUI() {
+    ["start-hz","stop-hz","points","ac-volt","dc-volt"].forEach(id => document.getElementById(id).disabled = false);
+    btnStart.disabled = false;
+  }
+
+  // ── Nyquist plot ────────────────────────────────────────────────────────────
+  const PLOT_LAYOUT = {
+    paper_bgcolor: "transparent",
+    plot_bgcolor:  "#101214",
+    font: { color: "#a0a5b0", size: 12, family: "Outfit, sans-serif" },
+    xaxis: {
+      title: { text: "Re(Z)  [mΩ]", font: { color: "#e0e2e8", size: 13 }, standoff: 8 },
+      color: "#505662", gridcolor: "#222630", zerolinecolor: "#2c3038",
+      tickfont: { color: "#a0a5b0", size: 11 },
+      tickformat: "~g",
+      exponentformat: "SI",
+    },
+    yaxis: {
+      title: { text: "\u2212Im(Z)  [m\u03a9]", font: { color: "#e0e2e8", size: 13 }, standoff: 26 },
+      color: "#505662", gridcolor: "#222630", zerolinecolor: "#2c3038",
+      tickfont: { color: "#a0a5b0", size: 11 },
+      tickformat: "~g",
+      exponentformat: "SI",
+      autorange: "reversed",
+    },
+    margin: { l: 86, r: 20, t: 14, b: 64 },
+    showlegend: false,
+    legend: {
+      x: 0, y: 1, xanchor: "left", yanchor: "top",
+      bgcolor: "rgba(22,26,30,0.85)", bordercolor: "#2c3038", borderwidth: 1,
+      font: { color: "#e0e2e8", size: 11 },
+    },
+  };
+
+  const PLOT_CONFIG = {
+    responsive: true,
+    displayModeBar: true,
+    displaylogo: false,
+    scrollZoom: false,   // we handle ctrl+scroll ourselves
+    modeBarButtonsToRemove: [
+      "select2d", "lasso2d",
+      "hoverClosestCartesian", "hoverCompareCartesian",
+      "toggleSpikelines",
+    ],
+    toImageButtonOptions: {
+      format: "png", filename: "eis_nyquist", scale: 2,
+    },
+  };
+
+  Plotly.newPlot("nyquist-plot", [], PLOT_LAYOUT, PLOT_CONFIG);
+
+  // Keep Y-axis reversed after autoscale / double-click reset
+  plotDiv.on("plotly_relayout", (update) => {
+    if (!update) return;
+    // Plotly sets autorange=true on reset — override to "reversed"
+    if (update["yaxis.autorange"] === true) {
+      Plotly.relayout("nyquist-plot", { "yaxis.autorange": "reversed" });
+    }
+  });
+
+  // ── Ctrl + scroll to zoom (graph only) ─────────────────────────────────────
+  plotDiv.addEventListener("wheel", function (e) {
+    if (!e.ctrlKey) return;        // non-ctrl wheel → browser zoom (default)
+    e.preventDefault();
+    e.stopPropagation();
+
+    const layout = plotDiv._fullLayout;
+    if (!layout) return;
+
+    const factor = e.deltaY > 0 ? 1.18 : 1 / 1.18;
+    const xr = layout.xaxis.range.map(Number);
+    const yr = layout.yaxis.range.map(Number);
+    const xc = (xr[0] + xr[1]) / 2;
+    const yc = (yr[0] + yr[1]) / 2;
+    const xh = (xr[1] - xr[0]) / 2 * factor;
+    const yh = (yr[1] - yr[0]) / 2 * factor;
+
+    Plotly.relayout("nyquist-plot", {
+      "xaxis.range": [xc - xh, xc + xh],
+      "yaxis.range": [yc - yh, yc + yh],
+    });
+  }, { passive: false });
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  function setStatus(state, text) {
+    dot.className         = state;
+    statusText.textContent= text;
+    statusPill.className  = "status-pill " + state;
+  }
+  function showMsg(text, type) {
+    msgBox.textContent = text; msgBox.className = type; msgBox.style.display = "block";
+  }
+  function hideMsg() { msgBox.style.display = "none"; }
+
+  function setRunning(running) {
+    sweepRunning = running;
+    btnStart.style.display = running ? "none" : "";
+    btnStop.style.display  = running ? "" : "none";
+    btnStop.disabled       = false;
+    btnStart.disabled = running || !allGreen();
+    btnCsv.disabled   = running;
+    progressW.style.display = running ? "block" : "none";
+    if (!running) { progressF.style.width = "0%"; progressPct.textContent = "0%"; }
+    const dis = running || !allGreen();
+    ["start-hz","stop-hz","points","ac-volt","dc-volt"].forEach(id => document.getElementById(id).disabled = dis);
+  }
+
+  let collectedPoints = [];
+
+  // ── History state ──────────────────────────────────────────────────────────
+  const folderInput    = document.getElementById("folder-input");
+  const btnBrowse      = document.getElementById("btn-browse-folder");
+  const historyList    = document.getElementById("history-list");
+
+  let historyFiles   = [];   // [{filename, name, timestamp, config, point_count}]
+  let loadedTraces   = [];   // [{name, filename, config, data, color}]
+  let selectedTrace  = -1;   // index into loadedTraces, -1 = none
+  let liveTrace      = null;
+  let liveConfig     = null;
+
+  const TRACE_COLORS = [
+    "#eaaa28", "#22c088", "#7e8ff7", "#e06090",
+    "#50c8e8", "#c878e0", "#e87850", "#88c840",
+  ];
+
+  function nextTraceColor() {
+    return TRACE_COLORS[loadedTraces.length % TRACE_COLORS.length];
+  }
+
+  // ── Multi-trace functions ──────────────────────────────────────────────────
+  function clearGraph() {
+    loadedTraces = [];
+    selectedTrace = -1;
+    liveTrace = null;
+    Plotly.react("nyquist-plot", [], PLOT_LAYOUT, PLOT_CONFIG);
+    plotMeta.textContent = "No data";
+    updateSettingsBar();
+    dataBody.innerHTML = '<tr id="empty-row"><td colspan="5">No data — start a sweep or load a measurement.</td></tr>';
+    collectedPoints = [];
+    tableCount.textContent = "0 points";
+    btnCsv.disabled = true;
+    renderHistory();
+  }
+
+  document.getElementById("btn-clear-graph").addEventListener("click", clearGraph);
+
+  function addPlotTrace(trace) {
+    Plotly.addTraces("nyquist-plot", {
+      x: trace.data.map(p => p.re),
+      y: trace.data.map(p => -p.im),
+      mode: "lines+markers",
+      type: "scatter",
+      name: trace.name,
+      marker: { color: trace.color, size: 5 },
+      line:   { color: trace.color, width: 1.8 },
+    });
+    updateLegend();
+  }
+
+  function updateLegend() {
+    const showLeg = loadedTraces.length > 0;
+    Plotly.relayout("nyquist-plot", { showlegend: showLeg });
+  }
+
+  async function loadTrace(filename) {
+    // Don't reload if already loaded
+    if (loadedTraces.find(t => t.filename === filename)) {
+      const idx = loadedTraces.findIndex(t => t.filename === filename);
+      selectTrace(idx);
+      return;
+    }
+    const res = await fetch(`/api/measurement/${encodeURIComponent(filename)}`);
+    const d   = await res.json();
+    if (d.error) { showMsg(d.error, "error"); return; }
+
+    const color = nextTraceColor();
+    const trace = {
+      name: d.name,
+      filename: filename,
+      config: d.config,
+      data: d.data,
+      color: color,
+    };
+    loadedTraces.push(trace);
+    addPlotTrace(trace);
+    selectTrace(loadedTraces.length - 1);
+    renderHistory();
+  }
+
+  // ── Settings bar + trace selection ─────────────────────────────────────────
+  function updateSettingsBar() {
+    const nameEl   = document.getElementById("settings-trace-name");
+    const paramsEl = document.getElementById("settings-params");
+
+    if (selectedTrace < 0 || selectedTrace >= loadedTraces.length) {
+      nameEl.textContent = "No trace selected";
+      nameEl.style.color = "var(--text-dim)";
+      paramsEl.innerHTML = "";
+      return;
+    }
+    const t = loadedTraces[selectedTrace];
+    nameEl.textContent = t.name;
+    nameEl.style.color = t.color;
+
+    const c = t.config || {};
+    const params = [
+      { label: "Start/End Freq", value: `${c.start_hz ?? "\u2014"}\u2013${c.stop_hz ?? "\u2014"} Hz` },
+      { label: "Points",         value: `${c.points ?? "\u2014"}` },
+      { label: "AC Amplitude",   value: `${c.ac_volt_pp ?? "\u2014"} mV` },
+      { label: "DC Bias",        value: `${c.dc_volt ?? "\u2014"} mV` },
+    ];
+    paramsEl.innerHTML = params.map(p =>
+      `<span class="settings-param"><span class="sp-label">${p.label}: </span><span class="sp-value">${p.value}</span></span>`
+    ).join("");
+  }
+
+  function selectTrace(idx) {
+    selectedTrace = idx;
+    updateSettingsBar();
+    updateDataTable();
+    // Highlight selected trace (thicker line), dim others
+    loadedTraces.forEach((t, i) => {
+      Plotly.restyle("nyquist-plot", {
+        "line.width": i === idx ? 2.8 : 1.2,
+        "marker.size": i === idx ? 6 : 4,
+        opacity: i === idx ? 1.0 : 0.45,
+      }, [i]);
+    });
+    renderHistory();
+  }
+
+  function updateDataTable() {
+    if (selectedTrace < 0 || selectedTrace >= loadedTraces.length) {
+      dataBody.innerHTML = '<tr id="empty-row"><td colspan="5">No data — start a sweep or load a measurement.</td></tr>';
+      tableCount.textContent = "0 points";
+      return;
+    }
+    const t = loadedTraces[selectedTrace];
+    if (!t.data.length) {
+      dataBody.innerHTML = '<tr id="empty-row"><td colspan="5">Collecting data...</td></tr>';
+      tableCount.textContent = "0 points";
+      return;
+    }
+    dataBody.innerHTML = "";
+    t.data.forEach((p, i) => {
+      const mag = Math.sqrt(p.re * p.re + p.im * p.im).toFixed(2);
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${i+1}</td><td>${p.freq.toFixed(3)}</td><td>${p.re.toFixed(2)}</td><td>${p.im.toFixed(2)}</td><td>${mag}</td>`;
+      dataBody.appendChild(row);
+    });
+    tableCount.textContent = `${t.data.length} points`;
+  }
+
+  // Plotly click handler for trace selection
+  plotDiv.on("plotly_click", (eventData) => {
+    if (eventData && eventData.points && eventData.points.length > 0) {
+      const traceIdx = eventData.points[0].curveNumber;
+      if (traceIdx >= 0 && traceIdx < loadedTraces.length) {
+        selectTrace(traceIdx);
+      }
+    }
+  });
+
+  // ── Drag-and-drop onto plot ────────────────────────────────────────────────
+  const plotArea = document.querySelector(".plot-area");
+  plotArea.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
+  plotArea.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const filename = e.dataTransfer.getData("text/plain");
+    if (filename) loadTrace(filename);
+  });
+
+  // ── Folder persistence (localStorage) ──────────────────────────────────────
+  const FOLDER_KEY = "eis_measurement_folder";
+
+  async function initFolder() {
+    const saved = localStorage.getItem(FOLDER_KEY);
+    if (saved) {
+      folderInput.value = saved;
+      await setFolder(saved);
+    } else {
+      const res = await fetch("/api/folder");
+      const d   = await res.json();
+      folderInput.value = d.folder;
+      localStorage.setItem(FOLDER_KEY, d.folder);
+    }
+    refreshHistory();
+  }
+
+  async function setFolder(folder) {
+    const res = await fetch("/api/folder", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({folder}),
+    });
+    const d = await res.json();
+    if (d.error) { showMsg(d.error, "error"); return; }
+    localStorage.setItem(FOLDER_KEY, d.folder);
+    folderInput.value = d.folder;
+    refreshHistory();
+  }
+
+  btnBrowse.addEventListener("click", async () => {
+    btnBrowse.disabled = true;
+    btnBrowse.textContent = "...";
+    try {
+      const res = await fetch("/api/browse-folder", { method: "POST" });
+      const d   = await res.json();
+      if (!d.cancelled && d.folder) {
+        await setFolder(d.folder);
+      }
+    } catch (e) {
+      showMsg("Browse failed: " + e.message, "error");
+    } finally {
+      btnBrowse.disabled = false;
+      btnBrowse.textContent = "Browse";
+    }
+  });
+
+  // ── History list ───────────────────────────────────────────────────────────
+  async function refreshHistory() {
+    const res = await fetch("/api/measurements");
+    const d   = await res.json();
+    historyFiles = d.files || [];
+    renderHistory();
+  }
+
+  function renderHistory() {
+    if (!historyFiles.length) {
+      historyList.innerHTML = '<div class="history-empty">No measurements yet.</div>';
+      return;
+    }
+    historyList.innerHTML = "";
+    historyFiles.forEach(f => {
+      const loaded = loadedTraces.find(t => t.filename === f.filename);
+      const item = document.createElement("div");
+      item.className = "history-item" + (loaded ? " loaded" : "");
+      item.draggable = true;
+      item.dataset.filename = f.filename;
+
+      const colorDot = document.createElement("div");
+      colorDot.className = "history-color";
+      if (loaded) colorDot.style.background = loaded.color;
+
+      const info = document.createElement("div");
+      info.className = "history-info";
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "history-name";
+      nameEl.textContent = f.name;
+
+      const meta = document.createElement("div");
+      meta.className = "history-meta";
+      const ts = f.timestamp ? f.timestamp.replace("T", " ") : "";
+      meta.textContent = `${f.point_count} pts \u00b7 ${ts}`;
+
+      info.appendChild(nameEl);
+      info.appendChild(meta);
+
+      const renameBtn = document.createElement("button");
+      renameBtn.className = "history-rename";
+      renameBtn.textContent = "\u270e";
+      renameBtn.title = "Rename";
+      renameBtn.addEventListener("click", (e) => { e.stopPropagation(); startRename(item, f); });
+
+      item.appendChild(colorDot);
+      item.appendChild(info);
+      item.appendChild(renameBtn);
+
+      // Double-click to load
+      item.addEventListener("dblclick", () => loadTrace(f.filename));
+
+      // Drag start
+      item.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", f.filename);
+        e.dataTransfer.effectAllowed = "copy";
+      });
+
+      historyList.appendChild(item);
+    });
+  }
+
+  // ── Rename ─────────────────────────────────────────────────────────────────
+  function startRename(item, file) {
+    const nameEl = item.querySelector(".history-name");
+    const input = document.createElement("input");
+    input.className = "history-name-input";
+    input.value = file.name;
+    nameEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    async function doRename() {
+      const newName = input.value.trim();
+      if (!newName || newName === file.name) {
+        refreshHistory();
+        return;
+      }
+      const res = await fetch(`/api/measurement/${encodeURIComponent(file.filename)}/rename`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name: newName}),
+      });
+      const d = await res.json();
+      if (d.error) showMsg(d.error, "error");
+      // Update loaded trace name if present
+      const lt = loadedTraces.find(t => t.filename === file.filename);
+      if (lt && d.filename) { lt.filename = d.filename; lt.name = d.name; updateLegend(); }
+      refreshHistory();
+    }
+
+    input.addEventListener("blur", doRename);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") input.blur();
+      if (e.key === "Escape") refreshHistory();
+    });
+  }
+
+  // ── CSV download ────────────────────────────────────────────────────────────
+  btnCsv.addEventListener("click", () => {
+    const pts = selectedTrace >= 0 && selectedTrace < loadedTraces.length
+              ? loadedTraces[selectedTrace].data
+              : collectedPoints;
+    if (!pts || !pts.length) return;
+    const hdr  = "Index,Freq_Hz,Re_mOhm,Im_mOhm,Mag_mOhm\n";
+    const rows = pts.map((p, i) => {
+      const mag = Math.sqrt(p.re * p.re + p.im * p.im).toFixed(4);
+      return `${i+1},${p.freq.toFixed(4)},${p.re.toFixed(4)},${p.im.toFixed(4)},${mag}`;
+    });
+    const name = selectedTrace >= 0 ? loadedTraces[selectedTrace].name : "eis";
+    const blob = new Blob([hdr + rows.join("\n")], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url;
+    a.download = `${name}_${new Date().toISOString().replace(/[:.]/g,"-").slice(0,19)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ── Re-check ────────────────────────────────────────────────────────────────
+  btnRecheck.addEventListener("click", () => {
+    resetHwChecks();
+    socket.emit("run_diagnostics");
+  });
+
+  // ── Socket events ────────────────────────────────────────────────────────────
+  socket.on("connect",    () => setStatus("idle", "Connected — checking hardware..."));
+  socket.on("disconnect", () => { setStatus("error", "Disconnected"); lockSweepUI(); btnRecheck.disabled = true; });
+
+  socket.on("status", (data) => {
+    if (data.running) {
+      setStatus("running", "Sweep in progress...");
+      setRunning(true);
+      ["vector","can_bus","mcufirmware"].forEach(k => {
+        hwState[k] = "ok";
+        const d = document.getElementById("hw-dot-" + k);
+        const m = document.getElementById("hw-msg-" + k);
+        if (d) d.className = "hw-dot ok";
+        if (m) m.textContent = "OK (sweep in progress)";
+      });
+      refreshMiniDots();
+      btnRecheck.disabled = true;
+    } else {
+      setStatus("idle", "Connected — checking hardware...");
+      setRunning(false);
+    }
+  });
+
+  socket.on("hw_check", (data) => {
+    updateHwCheck(data);
+    if (allGreen()) {
+      setStatus("idle", "Ready");
+    } else if (data.status === "error") {
+      setStatus("error", "Hardware check failed");
+      accordionOpen = true;
+      hwBody.classList.add("open");
+      hwChevron.classList.add("open");
+    }
+  });
+
+  socket.on("sweep_started", () => {
+    setStatus("running", "RCAL calibration (~40 s)...");
+    progressL.textContent   = "RCAL calibration...";
+    progressF.style.width   = "0%";
+    progressPct.textContent = "0%";
+
+    // Add live trace (will be replaced by saved file on completion)
+    const color = TRACE_COLORS[0];
+    liveTrace = { name: "Live Sweep", filename: null, config: liveConfig, data: [], color };
+    loadedTraces = [liveTrace];
+    Plotly.react("nyquist-plot", [{
+      x: [], y: [], mode: "lines+markers", type: "scatter",
+      name: "Live Sweep",
+      marker: { color, size: 5 },
+      line:   { color, width: 1.8 },
+    }], PLOT_LAYOUT, PLOT_CONFIG);
+    selectedTrace = 0;
+    updateSettingsBar();
+  });
+
+  socket.on("data_point", (pt) => {
+    const pct = Math.round(((pt.index + 1) / pt.total) * 100);
+    progressL.textContent   = `Point ${pt.index + 1} / ${pt.total}`;
+    progressF.style.width   = pct + "%";
+    progressPct.textContent = pct + "%";
+    setStatus("running", `Receiving — ${pt.index + 1} / ${pt.total}`);
+    plotMeta.textContent = `${pt.index + 1} / ${pt.total} pts`;
+
+    if (liveTrace) {
+      liveTrace.data.push({ freq: pt.freq, re: pt.re, im: pt.im });
+    }
+
+    collectedPoints.push({ freq: pt.freq, re: pt.re, im: pt.im });
+
+    Plotly.extendTraces("nyquist-plot", { x: [[pt.re]], y: [[-pt.im]] }, [0]);
+    updateDataTable();
+  });
+
+  socket.on("sweep_complete", (data) => {
+    setStatus("idle", `Complete — ${data.points.length} pts`);
+    progressL.textContent   = `Complete — ${data.points.length} points`;
+    progressF.style.width   = "100%";
+    progressPct.textContent = "100%";
+    plotMeta.textContent    = `${data.points.length} pts — complete`;
+    setRunning(false);
+    btnCsv.disabled = false;
+
+    // Replace live trace with saved file reference
+    if (liveTrace && data.filename) {
+      liveTrace.filename = data.filename;
+      liveTrace.name = data.filename.replace(".eis", "");
+      // Update Plotly trace name
+      Plotly.restyle("nyquist-plot", { name: liveTrace.name }, [0]);
+      updateLegend();
+    }
+    liveTrace = null;
+
+    refreshHistory();
+    showMsg(`Sweep complete — ${data.points.length} points saved.`, "info");
+  });
+
+  socket.on("sweep_error", (data) => {
+    setStatus("error", "Error");
+    setRunning(false);
+    showMsg(`Error: ${data.message}`, "error");
+  });
+
+  socket.on("sweep_stopped", (data) => {
+    setStatus("idle", "Stopped");
+    setRunning(false);
+    btnCsv.disabled = !(data.points && data.points.length);
+
+    if (liveTrace && data.filename) {
+      liveTrace.filename = data.filename;
+      liveTrace.name = data.filename.replace(".eis", "");
+      Plotly.restyle("nyquist-plot", { name: liveTrace.name }, [0]);
+      updateLegend();
+    }
+    liveTrace = null;
+
+    refreshHistory();
+    showMsg(data.message || "Sweep stopped.", "info");
+  });
+
+  // ── Stop sweep ──────────────────────────────────────────────────────────────
+  btnStop.addEventListener("click", () => {
+    socket.emit("stop_sweep");
+    btnStop.disabled = true;
+    setStatus("running", "Stopping...");
+  });
+
+  // ── Start sweep ──────────────────────────────────────────────────────────────
+  btnStart.addEventListener("click", () => {
+    const startHz = parseFloat(document.getElementById("start-hz").value);
+    const stopHz  = parseFloat(document.getElementById("stop-hz").value);
+    const points  = parseInt(document.getElementById("points").value);
+    const acVolt  = parseFloat(document.getElementById("ac-volt").value);
+    const dcVolt  = parseFloat(document.getElementById("dc-volt").value);
+
+    if (isNaN(startHz) || isNaN(stopHz) || isNaN(points)
+        || startHz <= 0 || stopHz <= startHz || points < 1 || points > 100) {
+      showMsg("Invalid parameters — ensure start < stop and points are 1–100.", "error");
+      return;
+    }
+    if (isNaN(acVolt) || acVolt < 10 || acVolt > 800) {
+      showMsg("AC amplitude must be 10–800 mV.", "error");
+      return;
+    }
+    if (isNaN(dcVolt) || dcVolt < 0 || dcVolt > 2400) {
+      showMsg("DC bias must be 0–2400 mV.", "error");
+      return;
+    }
+
+    clearGraph();
+    hideMsg();
+    setRunning(true);
+    setStatus("running", "Sending config...");
+    progressL.textContent = "Sending config + START...";
+    liveConfig = {
+      start_hz: startHz, stop_hz: stopHz, points,
+      ac_volt_pp: acVolt, dc_volt: dcVolt,
+    };
+    socket.emit("start_sweep", {
+      start_hz: startHz, stop_hz: stopHz, points,
+      ac_volt_pp: acVolt, dc_volt: dcVolt
+    });
+  });
+
+  // ── Initialize ─────────────────────────────────────────────────────────────
+  initFolder();
+</script>
+</body>
+</html>

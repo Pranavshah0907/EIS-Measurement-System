@@ -1,0 +1,9 @@
+# EIS Browser Interface — PC dependencies
+# Install with: pip install -r pc/requirements.txt
+# Or just run: setup.bat
+
+python-can[vector]>=4.0.0
+flask>=3.0.0
+flask-socketio>=5.3.0
+matplotlib>=3.7.0
+numpy>=1.24.0
