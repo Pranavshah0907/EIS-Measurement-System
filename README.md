@@ -52,10 +52,11 @@ See [docs/wiring.md](docs/wiring.md) for detailed pin connections.
    cd EIS-Measurement-System
    ```
 
-2. **Run setup** (creates virtual environment, installs dependencies, starts server)
+2. **Run setup** (creates venv, upgrades pip, installs dependencies, starts server)
    ```
    Double-click setup.bat
    ```
+   > **Note:** `setup.bat` uses the virtual environment's own pip for all installs. You do not need to activate the venv manually — the script handles everything.
 
 3. **Use the interface**
    - Browser opens automatically to `http://localhost:8080`

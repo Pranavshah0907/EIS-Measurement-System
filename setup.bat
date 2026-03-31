@@ -41,6 +41,10 @@ exit /b 1
 
 :venvok
 
+:: ── Upgrade pip ───────────────────────────────────────────────
+echo   Upgrading pip ...
+pc\.venv\Scripts\python.exe -m pip install --upgrade pip -q
+
 :: ── Install dependencies ──────────────────────────────────────
 echo   Installing dependencies ...
 pc\.venv\Scripts\pip install -q -r pc\requirements.txt
