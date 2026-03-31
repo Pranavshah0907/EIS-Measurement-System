@@ -6,6 +6,7 @@ __pycache__/
 # IDE / Dev tools
 .claude/
 .playwright-mcp/
+CLAUDE.md
 
 # Local config
 pc/.eis_config.json
