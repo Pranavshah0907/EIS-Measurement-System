@@ -10,13 +10,18 @@ echo.
 
 :: ── Check Python ─────────────────────────────────────────────
 python --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Python not found on PATH.
-    echo   Install Python 3.10+ from https://python.org
-    echo   Make sure to check "Add Python to PATH" during install.
-    pause & exit /b 1
-)
+if errorlevel 1 goto :nopython
 for /f "tokens=*" %%v in ('python --version') do echo   Found: %%v
+goto :havepython
+
+:nopython
+echo ERROR: Python not found on PATH.
+echo   Install Python 3.10+ from https://python.org
+echo   Make sure to check "Add Python to PATH" during install.
+pause
+exit /b 1
+
+:havepython
 
 :: ── Create virtual environment ───────────────────────────────
 if exist "pc\.venv\Scripts\python.exe" (
@@ -24,20 +29,36 @@ if exist "pc\.venv\Scripts\python.exe" (
 ) else (
     echo   Creating virtual environment ...
     python -m venv pc\.venv
-    if errorlevel 1 ( echo ERROR: venv creation failed. & pause & exit /b 1 )
+    if errorlevel 1 goto :venvfail
     echo   Done.
 )
+goto :venvok
+
+:venvfail
+echo ERROR: venv creation failed.
+pause
+exit /b 1
+
+:venvok
 
 :: ── Install dependencies ──────────────────────────────────────
 echo   Installing dependencies ...
 pc\.venv\Scripts\pip install -q -r pc\requirements.txt
-if errorlevel 1 ( echo ERROR: pip install failed. & pause & exit /b 1 )
+if errorlevel 1 goto :pipfail
 echo   Done.
+goto :pipok
+
+:pipfail
+echo ERROR: pip install failed.
+pause
+exit /b 1
+
+:pipok
 
 :: ── Kill stale server on port 5000 ───────────────────────────
 echo   Checking for existing server on port 5000 ...
 for /f "tokens=5" %%p in ('netstat -aon ^| findstr :5000 ^| findstr LISTENING') do (
-    echo   Stopping previous server (PID %%p) ...
+    echo   Stopping previous server PID %%p ...
     taskkill /PID %%p /F >nul 2>&1
 )
 
