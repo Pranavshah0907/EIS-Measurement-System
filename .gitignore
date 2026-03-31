@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# IDE / Dev tools
+.claude/
+.playwright-mcp/
+
+# Local config
+pc/.eis_config.json
+
+# Runtime data (folders exist, contents ignored)
+pc/measurements/*.eis
+pc/results/*
+!pc/results/.gitkeep
+
+# Reference materials (copyrighted, not our code)
+Data/
+AD5940_BATImpedance_Updated/
+ad5940-examples/
+
+# Keil build artifacts
+firmware/*/Objects/
+firmware/*/Listings/
+firmware/*/RTE/
+firmware/*/*.uvguix.*
+firmware/*/*.uvoptx
+
+# Old development-only files
+firmware/blinky_test/
+firmware/build_flash.py
+pc/install_startup.py
+pc/eis_server.bat
+pc/sprint1_loopback_test.py
+pc/sprint5b_eis_trigger.py
+pc/sprint6_eis_config_trigger.py
+pc/send_test_message.py
+pc/send_led_command.py
+pc/can_monitor.py
+
+# CAD / misc
+*.dwg
+*.dxf
+screenshot_v*.png
+sprint8_ui.png
+
+# Claude brainstorming artifacts
+docs/superpowers/
