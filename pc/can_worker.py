@@ -28,7 +28,7 @@ import can
 import json
 
 # ── CAN configuration ────────────────────────────────────────────────────────
-APP_NAME = "MCP_Integration"
+APP_NAME = "EIS-Measurement-System"
 CHANNEL  = 0          # Vector CH1 (index 0)
 BITRATE  = 125_000    # 125 kbps
 

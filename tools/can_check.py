@@ -12,7 +12,7 @@ Usage:
 
 Prerequisites:
     - Vector XL Driver Library installed
-    - Vector Hardware Config: app "MCP_Integration" with CAN1 = CH1 at 125 kbps
+    - Vector Hardware Config: app "EIS-Measurement-System" with CAN1 = CH1 at 125 kbps
     - VN1640A connected via USB
 
 Exit codes:
@@ -30,7 +30,7 @@ except ImportError:
     print("  Run:  pip install python-can[vector]")
     sys.exit(1)
 
-APP_NAME = "MCP_Integration"
+APP_NAME = "EIS-Measurement-System"
 CHANNEL  = 0        # Vector CH1 (index 0)
 BITRATE  = 125_000  # 125 kbps
 
@@ -63,7 +63,7 @@ def main():
         print("  Troubleshooting:")
         print("    - Is the VN1640A plugged in via USB?")
         print("    - Is the Vector XL Driver Library installed?")
-        print("    - In Vector Hardware Config, is app 'MCP_Integration'")
+        print("    - In Vector Hardware Config, is app 'EIS-Measurement-System'")
         print("      assigned with CAN1 = CH1 (index 0)?")
         print()
         sys.exit(1)

@@ -60,7 +60,7 @@ echo.
 echo   Prerequisites (install once per PC):
 echo     - Python 3.10+       https://python.org
 echo     - Vector XL Driver   (matches your VN1640A)
-echo     - Vector HW Config:  app "MCP_Integration", CAN1=CH1, 125 kbps
+echo     - Vector HW Config:  app "EIS-Measurement-System", CAN1=CH1, 125 kbps
 echo ============================================================
 echo.
 pause

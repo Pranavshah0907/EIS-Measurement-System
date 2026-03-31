@@ -1,4 +1,4 @@
-# MCP Integration — EIS Measurement System
+# EIS Measurement System
 
 Browser-based Electrochemical Impedance Spectroscopy (EIS) interface.
 Click **Start Sweep** in the browser, and impedance data flows from the AD5941 analog front-end through CAN bus to a live Nyquist plot.
@@ -29,7 +29,7 @@ Install these **once** on the PC before first use:
 |-------------|---------|
 | **Python 3.10+** | [python.org/downloads](https://www.python.org/downloads/) — check "Add to PATH" during install |
 | **Vector XL Driver Library** | From Vector website — must match your VN1640A hardware |
-| **Vector Hardware Config** | Open Vector Hardware Config (installed with XL Driver). Create app **"MCP_Integration"** and assign **CAN1 = Channel 1 (CH1)** at **125 kbps** |
+| **Vector Hardware Config** | Open Vector Hardware Config (installed with XL Driver). Create app **"EIS-Measurement-System"** and assign **CAN1 = Channel 1 (CH1)** at **125 kbps** |
 
 ### Hardware (must be connected and powered)
 
@@ -48,8 +48,8 @@ See [docs/wiring.md](docs/wiring.md) for detailed pin connections.
 
 1. **Clone the repo**
    ```bash
-   git clone <repo-url>
-   cd MCP_Integration
+   git clone https://github.com/Pranavshah0907/EIS-Measurement-System.git
+   cd EIS-Measurement-System
    ```
 
 2. **Run setup** (creates virtual environment, installs dependencies, starts server)
@@ -68,7 +68,7 @@ To restart later, just double-click `setup.bat` again.
 ## Project Structure
 
 ```
-MCP_Integration/
+EIS-Measurement-System/
 ├── setup.bat              <- One-click setup + launch
 ├── pc/
 │   ├── server.py          <- Flask + SocketIO web server

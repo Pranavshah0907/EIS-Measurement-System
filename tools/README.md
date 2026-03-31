@@ -8,7 +8,7 @@ Run these from the **repo root** after setup.
 - Python virtual environment set up (run `setup.bat` first, or create manually)
 - Vector VN1640A connected via USB
 - Vector XL Driver Library installed
-- Vector Hardware Config: app **"MCP_Integration"** with CAN1 = CH1 at 125 kbps
+- Vector Hardware Config: app **"EIS-Measurement-System"** with CAN1 = CH1 at 125 kbps
 
 ## Tools
 

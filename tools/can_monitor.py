@@ -11,7 +11,7 @@ Usage:
 
 Prerequisites:
     - Vector XL Driver Library installed
-    - Vector Hardware Config: app "MCP_Integration" with CAN1 = CH1
+    - Vector Hardware Config: app "EIS-Measurement-System" with CAN1 = CH1
     - VN1640A connected via USB
 """
 
@@ -20,7 +20,7 @@ import time
 import argparse
 import threading
 
-APP_NAME = "MCP_Integration"
+APP_NAME = "EIS-Measurement-System"
 BITRATE  = 125000
 
 # Known CAN IDs in our EIS protocol

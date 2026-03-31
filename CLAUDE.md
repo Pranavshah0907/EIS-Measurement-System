@@ -116,7 +116,7 @@ Hardware identified, wiring designed, CAN protocol defined, project files create
 
 ### ✅ Sprint 1 — PC CAN Layer Validated (DONE)
 - python-can 4.6.1 installed
-- Vector app "MCP_Integration" registered: CAN1=CH1(index 0), CAN2=CH2(index 1)
+- Vector app "EIS-Measurement-System" registered: CAN1=CH1(index 0), CAN2=CH2(index 1)
 - Hardware loopback test PASSED: CH1 TX → CH2 RX at 125kbps, ID=0x100
 - Key learning: 120Ω termination required — CAN ACK errors without it
 - DB9 120Ω termination adapter (female-female) available
